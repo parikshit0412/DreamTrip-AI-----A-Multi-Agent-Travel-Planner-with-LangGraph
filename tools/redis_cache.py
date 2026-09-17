@@ -74,6 +74,25 @@ class RedisCacheManager:
             self.is_connected = True
             print(f"[RedisCache] Successfully connected to Redis at {self.redis_url}")
         except Exception as e:
+            # If running inside Docker and localhost failed, attempt host.docker.internal
+            if "localhost" in self.redis_url or "127.0.0.1" in self.redis_url:
+                docker_host_url = self.redis_url.replace("localhost", "host.docker.internal").replace("127.0.0.1", "host.docker.internal")
+                try:
+                    docker_client = redis.from_url(
+                        docker_host_url,
+                        decode_responses=True,
+                        socket_timeout=3,
+                        socket_connect_timeout=3
+                    )
+                    docker_client.ping()
+                    self.client = docker_client
+                    self.redis_url = docker_host_url
+                    self.is_connected = True
+                    print(f"[RedisCache] Successfully connected to Redis on host machine at {docker_host_url}")
+                    return
+                except Exception:
+                    pass
+
             self.is_connected = False
             self.client = None
             print(f"[RedisCache] Could not connect to Redis ({e}). Using in-memory fallback cache.")
