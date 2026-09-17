@@ -95,7 +95,10 @@ class RedisCacheManager:
 
             self.is_connected = False
             self.client = None
-            print(f"[RedisCache] Could not connect to Redis ({e}). Using in-memory fallback cache.")
+            if not os.getenv("REDIS_URL"):
+                print("[RedisCache] No external REDIS_URL provided. Operating with high-speed in-memory fallback cache.")
+            else:
+                print(f"[RedisCache] Could not connect to Redis at {self.redis_url} ({e}). Using in-memory fallback cache.")
 
     def _normalize_key(self, prefix: str, text: str) -> str:
         """

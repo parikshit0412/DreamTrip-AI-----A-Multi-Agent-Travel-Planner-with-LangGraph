@@ -77,11 +77,15 @@ class TravelRequest(BaseModel):
 # Web & API Route Handlers
 # ==============================================================================
 
-@app.get("/", response_class=HTMLResponse)
+@app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def home(request: Request):
     """
     Renders the single-page application (SPA) user interface.
+    Handles HEAD requests cleanly for cloud health probes (e.g. Render, Cloudflare).
     """
+    if request.method == "HEAD":
+        return HTMLResponse(content="", status_code=200)
+
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -163,10 +167,11 @@ async def cache_clear():
     return {"success": True, "cleared_keys": count, "message": "Cache flushed successfully."}
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
     """
     System health check reporting service status and Redis connectivity.
+    Supports both GET and HEAD probes.
     """
     return {
         "status": "ok",
@@ -175,7 +180,7 @@ async def health_check():
     }
 
 
-@app.get("/favicon.ico")
+@app.api_route("/favicon.ico", methods=["GET", "HEAD"])
 async def favicon():
     """
     Handles browser favicon requests cleanly to prevent unnecessary 404 error logs.
@@ -187,9 +192,11 @@ async def favicon():
 # Local Server Execution Entrypoint
 # ==============================================================================
 if __name__ == "__main__":
+    import os
+    port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "app:app",
-        host="127.0.0.1",
-        port=8000,
+        host="0.0.0.0",
+        port=port,
         reload=True  # Auto-reloads server upon code changes during development
     )

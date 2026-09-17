@@ -1,0 +1,34 @@
+services:
+  # ==============================================================================
+  # DreamTrip AI — Render Web Service
+  # ==============================================================================
+  - type: web
+    name: dreamtrip-ai
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: AVIATIONSTACK_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: DEFAULT_ORIGIN_IATA
+        value: DAC
+      # Automatically wire Redis connection string if using Render managed Redis
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: dreamtrip-redis
+          property: connectionString
+
+  # ==============================================================================
+  # DreamTrip AI — Optional Render Managed Redis Instance (Free Tier)
+  # ==============================================================================
+  - type: redis
+    name: dreamtrip-redis
+    plan: free
+    ipAllowList: [] # Accessible internally only from the web service
