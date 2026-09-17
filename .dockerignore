@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables & Secrets (NEVER bake secrets into Docker images!)
+.env
+.env.*
+!.env.example
+
+# Git repository
+.git/
+.gitignore
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary & Log files
+*.log
+scratch/
+test_sample_plan.md
+.user_uploaded/
+
+# OS specific files
+.DS_Store
+Thumbs.db

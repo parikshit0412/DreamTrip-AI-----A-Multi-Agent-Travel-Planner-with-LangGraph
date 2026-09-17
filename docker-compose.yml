@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  # ============================================================================
+  # DreamTrip AI Application Service
+  # ============================================================================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dreamtrip-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - REDIS_URL=redis://redis:6379/0
+      # Pass API keys from host environment or .env file
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - AVIATIONSTACK_API_KEY=${AVIATIONSTACK_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - DEFAULT_ORIGIN_IATA=${DEFAULT_ORIGIN_IATA:-DAC}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - dreamtrip-network
+
+  # ============================================================================
+  # Redis Token Conservation & Query Cache Service
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: dreamtrip-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dreamtrip-network
+
+# ==============================================================================
+# Persistent Volumes & Networks
+# ==============================================================================
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  dreamtrip-network:
+    driver: bridge

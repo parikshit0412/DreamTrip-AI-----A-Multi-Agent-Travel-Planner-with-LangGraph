@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DreamTrip AI — LangGraph Multi-Agent Travel Planner</title>
+    
+    <!-- Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Application CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- Ambient Background Elements (Crimson & Solar Glow) -->
+    <div class="space-canvas-bg">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+        <div class="ambient-orb orb-3"></div>
+    </div>
+    <div class="cyber-grid"></div>
+
+    <div class="app-container">
+
+        <!-- Top Navigation Bar -->
+        <header class="top-navbar">
+            <div class="brand-wrapper">
+                <div class="brand-logo-box">
+                    <span class="logo-icon">🧭</span>
+                </div>
+                <div class="brand-text">
+                    <h1>DreamTrip AI</h1>
+                    <span>LANGGRAPH MULTI-AGENT ARCHITECTURE</span>
+                </div>
+            </div>
+
+            <div class="nav-badges">
+                <div class="system-pill">
+                    <span class="dot"></span>
+                    <span>Multi-Agent Active</span>
+                </div>
+                <div class="tech-chip redis-pill" id="headerRedisChip" title="Redis Low-Latency Token Conservation Engine">
+                    ⚡ Redis 8 Cache
+                </div>
+                <div class="tech-chip">
+                    ⚡ Gemini 2.5 Flash
+                </div>
+                <div class="tech-chip">
+                    🐘 PostgreSQL Checkpoint
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-pill-badge">
+                <span>✦</span> LangGraph StateGraph Autonomous Workflow
+            </div>
+            <h1 class="hero-title">
+                Next-Gen Travel Planning<br>Engineered by AI Agents
+            </h1>
+            <p class="hero-subtitle">
+                Autonomous multi-agent orchestration coordinating <strong>Flight Intelligence</strong>, <strong>Tavily Hotel Discovery</strong>, and <strong>Deterministic Budget Synthesis</strong> with persistent PostgreSQL memory.
+            </p>
+        </section>
+
+        <!-- Planner Card -->
+        <div class="planner-card-wrapper">
+            <div class="planner-card" id="plannerCard">
+                <div class="card-accent-line"></div>
+                
+                <div class="planner-card-content">
+                    <div class="card-top-header">
+                        <div class="card-title-group">
+                            <h2>
+                                <span>🎯</span> Plan Your Expedition
+                            </h2>
+                            <p>Specify origin, destination, duration, budget constraints, and preferred travel vibe.</p>
+                        </div>
+                        <div class="session-indicator">
+                            <span>Session:</span>
+                            <span class="thread-val" id="activeThreadBadge">session_new</span>
+                        </div>
+                    </div>
+
+                    <div class="input-interactive-deck">
+                        <textarea
+                            id="userInput"
+                            class="prompt-textarea"
+                            placeholder="e.g. Plan a complete 7-day Japan trip from Kolkata under ₹2 Lakhs including flights, boutique hotels, bullet train routes, and cultural highlights..."
+                        ></textarea>
+                    </div>
+
+                    <div class="input-deck-footer">
+                        <div class="input-shortcuts">
+                            <span>Press</span>
+                            <kbd class="shortcut-kbd">Ctrl</kbd>
+                            <span>+</span>
+                            <kbd class="shortcut-kbd">Enter</kbd>
+                            <span>to launch</span>
+                        </div>
+
+                        <button id="sendBtn" class="btn-launch-engine" onclick="sendMessage()">
+                            <span id="btnText">Launch Agent Engine</span>
+                            <span id="btnLoader" class="loader-spinner hidden"></span>
+                        </button>
+                    </div>
+
+                    <!-- Quick Prompts Selection -->
+                    <div class="quick-prompt-section">
+                        <div class="quick-prompt-label">Curated Sample Prompts</div>
+                        <div class="prompt-chips-grid">
+                            <div class="prompt-chip" onclick="setPrompt('Plan a complete 7 days Japan trip from Kolkata under ₹2 Lakhs with flights, Tokyo & Kyoto hotels, and day-by-day sightseeing.')">
+                                <div class="prompt-chip-top">
+                                    <span class="chip-title">🇯🇵 Japan Odyssey</span>
+                                    <span class="chip-tag">₹2.0L • 7 Days</span>
+                                </div>
+                                <span class="chip-subtitle">Tokyo & Kyoto Sakura Tour</span>
+                            </div>
+
+                            <div class="prompt-chip" onclick="setPrompt('Plan a 5 days luxury Dubai trip from Delhi with flights, desert safari, Burj Khalifa, and 3-star budget hotels under ₹1 Lakh.')">
+                                <div class="prompt-chip-top">
+                                    <span class="chip-title">🇦🇪 Dubai Desert & Sky</span>
+                                    <span class="chip-tag">₹1.0L • 5 Days</span>
+                                </div>
+                                <span class="chip-subtitle">Dune Bashing & Skyline Luxury</span>
+                            </div>
+
+                            <div class="prompt-chip" onclick="setPrompt('Plan a 6 days Thailand tropical trip from Mumbai covering Bangkok and Phuket with beachside stays under ₹75,000.')">
+                                <div class="prompt-chip-top">
+                                    <span class="chip-title">🇹🇭 Thailand Islands</span>
+                                    <span class="chip-tag">₹75k • 6 Days</span>
+                                </div>
+                                <span class="chip-subtitle">Bangkok & Phuket Explorer</span>
+                            </div>
+
+                            <div class="prompt-chip" onclick="setPrompt('Plan an 8 days European budget trip covering Switzerland and Paris from Delhi under ₹2.5 Lakhs.')">
+                                <div class="prompt-chip-top">
+                                    <span class="chip-title">🇪🇺 Swiss & Paris Circuit</span>
+                                    <span class="chip-tag">₹2.5L • 8 Days</span>
+                                </div>
+                                <span class="chip-subtitle">Alps, Rail & Parisian Landmarks</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Agent Architecture Pipeline Visualizer -->
+        <section class="agent-pipeline-card" id="agentPipelineCard">
+            <div class="pipeline-header">
+                <div class="pipeline-title">
+                    <span style="font-size: 20px;">⚡</span>
+                    <h3>LangGraph StateGraph Execution Pipeline</h3>
+                </div>
+                <div id="pipelineStatusBadge" class="pipeline-status-badge">STANDBY</div>
+            </div>
+
+            <div class="agent-nodes-grid" id="agentNodesGrid">
+                <!-- Node 1: Flight Agent -->
+                <div class="agent-node" id="nodeFlight">
+                    <div class="agent-node-icon">✈️</div>
+                    <div class="agent-node-name">Flight Agent</div>
+                    <div class="agent-node-role">AviationStack API & Live Routes</div>
+                    <div class="agent-node-status" id="statusFlight">Awaiting trigger</div>
+                </div>
+
+                <!-- Node 2: Hotel Agent -->
+                <div class="agent-node" id="nodeHotel">
+                    <div class="agent-node-icon">🏨</div>
+                    <div class="agent-node-name">Hotel Agent</div>
+                    <div class="agent-node-role">Tavily Web Discovery & Stays</div>
+                    <div class="agent-node-status" id="statusHotel">Awaiting trigger</div>
+                </div>
+
+                <!-- Node 3: Itinerary Agent -->
+                <div class="agent-node" id="nodeItinerary">
+                    <div class="agent-node-icon">🗺️</div>
+                    <div class="agent-node-name">Itinerary Agent</div>
+                    <div class="agent-node-role">Sequential Day-by-Day Logistics</div>
+                    <div class="agent-node-status" id="statusItinerary">Awaiting trigger</div>
+                </div>
+
+                <!-- Node 4: Final Synthesis Agent -->
+                <div class="agent-node" id="nodeFinal">
+                    <div class="agent-node-icon">🧠</div>
+                    <div class="agent-node-name">Synthesis Agent</div>
+                    <div class="agent-node-role">Budget Governance & Executive Plan</div>
+                    <div class="agent-node-status" id="statusFinal">Awaiting trigger</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Dashboard Section -->
+        <div class="results-card-wrapper hidden" id="resultsCardWrapper">
+            <div class="results-card" id="resultsCard">
+                <div class="card-accent-line"></div>
+
+                <div class="results-card-content">
+                    <div class="results-top-bar">
+                        <div class="results-meta">
+                            <h2>Autonomous Travel Master Plan</h2>
+                            <div class="meta-stats-row">
+                                <span class="meta-chip highlight" id="telemetryThreadId">Thread: -</span>
+                                <span class="meta-chip" id="telemetryCalls">LLM Invocations: 2</span>
+                                <span class="meta-chip" id="telemetryCacheBadge">⚡ Cache: Ready</span>
+                                <span class="meta-chip" id="telemetryLatency">Latency: -</span>
+                                <span class="meta-chip">Memory: PostgreSQL Checkpointer</span>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons-group">
+                            <button class="btn-action btn-copy" onclick="copyMasterResult()">
+                                <span>📋</span>
+                                <span id="copyBtnText">Copy Markdown</span>
+                            </button>
+                            <button class="btn-action btn-pdf" onclick="exportPDF()">
+                                <span>📥</span>
+                                <span id="pdfBtnText">Download PDF</span>
+                            </button>
+                            <button class="btn-action btn-print" onclick="printPlan()">
+                                <span>🖨️</span>
+                                <span>Print Plan</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Studio Tabs -->
+                    <div class="studio-tabs-nav">
+                        <button class="studio-tab-btn active" onclick="switchTab('masterPlan')">
+                            <span>🌟</span> Master Executive Plan
+                        </button>
+                        <button class="studio-tab-btn" onclick="switchTab('flightData')">
+                            <span>✈️</span> Flight Intel
+                        </button>
+                        <button class="studio-tab-btn" onclick="switchTab('hotelData')">
+                            <span>🏨</span> Curated Hotels
+                        </button>
+                        <button class="studio-tab-btn" onclick="switchTab('rawItinerary')">
+                            <span>🗺️</span> Raw Itinerary
+                        </button>
+                        <button class="studio-tab-btn" onclick="switchTab('telemetry')">
+                            <span>📊</span> Graph Telemetry
+                        </button>
+                    </div>
+
+                    <!-- Tab Panels -->
+                    <div id="tabPanelMasterPlan" class="tab-panel active">
+                        <div id="pdfExportContainer">
+                            <div id="markdownResultRender" class="markdown-body-render"></div>
+                        </div>
+                    </div>
+
+                    <div id="tabPanelFlightData" class="tab-panel">
+                        <div class="raw-agent-box" id="rawFlightBox">// Flight Agent intelligence stream will appear here...</div>
+                    </div>
+
+                    <div id="tabPanelHotelData" class="tab-panel">
+                        <div class="raw-agent-box" id="rawHotelBox">// Hotel Agent Tavily search stream will appear here...</div>
+                    </div>
+
+                    <div id="tabPanelRawItinerary" class="tab-panel">
+                        <div class="raw-agent-box" id="rawItineraryBox">// Raw Itinerary synthesis stream will appear here...</div>
+                    </div>
+
+                    <div id="tabPanelTelemetry" class="tab-panel">
+                        <div class="telemetry-grid">
+                            <div class="telemetry-card">
+                                <div class="stat-label">LLM Invocations</div>
+                                <div class="stat-val" id="telemetryLlmCalls">2</div>
+                                <div class="stat-sub">Gemini 2.5 Flash</div>
+                            </div>
+                            <div class="telemetry-card">
+                                <div class="stat-label">Redis Cache Status</div>
+                                <div class="stat-val" id="telemetryCacheStatus">Ready</div>
+                                <div class="stat-sub" id="telemetryCacheSub">Token Economy Engine</div>
+                            </div>
+                            <div class="telemetry-card">
+                                <div class="stat-label">Response Latency</div>
+                                <div class="stat-val" id="telemetryLatencyVal">-</div>
+                                <div class="stat-sub" id="telemetryLatencySub">Roundtrip duration</div>
+                            </div>
+                            <div class="telemetry-card">
+                                <div class="stat-label">Checkpoint Storage</div>
+                                <div class="stat-val">Active</div>
+                                <div class="stat-sub">PostgresSaver (Render)</div>
+                            </div>
+                        </div>
+
+                        <!-- Live Redis Cache Controls & Stats Card -->
+                        <div class="cache-controls-card">
+                            <div class="cache-controls-info">
+                                <strong style="color: var(--yellow-neon); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                                    <span>🚀</span> Redis Token Economy & Live Cache Control
+                                </strong>
+                                <p id="cacheStatsSummary" style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 4px;">
+                                    Repeat queries for identical or normalized context bypass LLM calls & external APIs completely, serving cached plans in &lt;10ms with 0 tokens consumed.
+                                </p>
+                            </div>
+                            <div class="cache-actions-group">
+                                <button class="btn-cache-action" onclick="fetchLiveCacheStats()">
+                                    <span>📊</span> Refresh Stats
+                                </button>
+                                <button class="btn-cache-action" onclick="flushRedisCache()">
+                                    <span>🗑️</span> Clear Redis Cache
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="raw-agent-box" id="rawTelemetryJson" style="margin-top: 20px;">// Telemetry payload...</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Notification Banner -->
+        <div id="errorBanner" class="error-banner hidden">
+            <span class="err-icon">⚠️</span>
+            <span id="errorMessage">Something went wrong during agent execution.</span>
+        </div>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>High-Performance Multi-Agent Travel Orchestration Engine</p>
+            <div class="footer-tags">
+                <span>FastAPI</span>
+                <span>LangGraph StateGraph</span>
+                <span>Google Gemini 2.5 Flash</span>
+                <span>Redis 8 Caching</span>
+                <span>PostgreSQL Checkpointer</span>
+                <span>Tavily AI Search</span>
+                <span>AviationStack API</span>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- PDF Generation Bundle -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Custom App Logic -->
+    <script src="/static/script.js"></script>
+</body>
+</html>
