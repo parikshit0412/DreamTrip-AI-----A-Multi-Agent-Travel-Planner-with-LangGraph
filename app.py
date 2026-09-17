@@ -139,11 +139,22 @@ async def travel_planner(request_data: TravelRequest):
         print("ERROR during travel planner execution:", e)
         traceback.print_exc()
 
+        err_str = str(e)
+        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+            clean_error = (
+                "Google Gemini API Quota Exceeded (429 RESOURCE_EXHAUSTED). "
+                "The current model has reached its free-tier daily quota limit. "
+                "Please retry in a moment, switch GEMINI_MODEL to 'gemini-flash-latest' in your settings, "
+                "or enable billing in Google AI Studio to increase your rate limits."
+            )
+        else:
+            clean_error = err_str
+
         return JSONResponse(
             status_code=500,
             content={
                 "success": False,
-                "error": str(e)
+                "error": clean_error
             }
         )
 

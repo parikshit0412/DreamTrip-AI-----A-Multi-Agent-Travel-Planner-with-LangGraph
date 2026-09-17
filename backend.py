@@ -99,12 +99,27 @@ if not GEMINI_API_KEY:
         "GEMINI_API_KEY is missing. Please add your Gemini API Key to .env"
     )
 
-# Instantiate the primary Gemini 2.5 Flash model with deterministic temperature (0)
+# Allow model configuration via environment variable (default: gemini-flash-latest with high free-tier quotas)
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+
+# Instantiate the primary Gemini model with deterministic temperature (0)
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
+    model=GEMINI_MODEL,
     api_key=GEMINI_API_KEY,
     temperature=0  # Zero temperature ensures consistent, reproducible travel planning outputs
 )
+
+
+def extract_text(content) -> str:
+    """
+    Safely normalizes response content into a string, supporting both standard
+    strings and Gemini list-of-parts representations.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
+    return str(content)
 
 
 # ==============================================================================
@@ -193,14 +208,14 @@ Hotel Results:
 Make the itinerary practical, budget-aware, and easy to follow.
 """
 
-    # Invocates Gemini 2.5 Flash with system role instructions and compiled context
+    # Invokes Gemini model with system role instructions and compiled context
     response = llm.invoke([
         SystemMessage(content="You are an expert travel planner."),
         HumanMessage(content=prompt)
     ])
 
     return {
-        "itinerary": response.content,
+        "itinerary": extract_text(response.content),
         "messages": [response],
         "llm_calls": 1
     }
@@ -359,7 +374,7 @@ def run_travel_agent(user_input: str, thread_id: str | None = None) -> dict:
         config=config
     )
 
-    final_answer = result["messages"][-1].content
+    final_answer = extract_text(result["messages"][-1].content)
     flight_results = result.get("flight_results", "")
     hotel_results = result.get("hotel_results", "")
     itinerary = result.get("itinerary", "")
