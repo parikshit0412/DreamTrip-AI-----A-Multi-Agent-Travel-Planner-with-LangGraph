@@ -37,7 +37,9 @@ from starlette.concurrency import run_in_threadpool  # Offloads synchronous Lang
 # ------------------------------------------------------------------------------
 from backend import run_travel_agent  # Multi-agent LangGraph orchestrator
 from tools.redis_cache import cache   # Singleton Redis cache manager for token savings & telemetry
-
+#This is to allow nested event loops for async calls in FastAPI
+import nest_asyncio
+nest_asyncio.apply()
 # Resolve base project directory
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -127,6 +129,7 @@ async def travel_planner(request_data: TravelRequest):
                 "answer": result["answer"],
                 "flight_results": result["flight_results"],
                 "hotel_results": result["hotel_results"],
+                "weather_results": result.get("weather_results", ""),
                 "itinerary": result["itinerary"],
                 "llm_calls": result["llm_calls"],
                 "is_cached": result.get("is_cached", False),

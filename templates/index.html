@@ -46,6 +46,9 @@
                     ⚡ Redis 8 Cache
                 </div>
                 <div class="tech-chip">
+                    ⛅ OpenWeather MCP
+                </div>
+                <div class="tech-chip">
                     ⚡ Gemini 2.5 Flash
                 </div>
                 <div class="tech-chip">
@@ -63,7 +66,7 @@
                 Next-Gen Travel Planning<br>Engineered by AI Agents
             </h1>
             <p class="hero-subtitle">
-                Autonomous multi-agent orchestration coordinating <strong>Flight Intelligence</strong>, <strong>Tavily Hotel Discovery</strong>, and <strong>Deterministic Budget Synthesis</strong> with persistent PostgreSQL memory.
+                Autonomous multi-agent orchestration coordinating <strong>Flight Intelligence</strong>, <strong>Tavily Hotel Discovery</strong>, <strong>OpenWeather MCP Live Forecasting</strong>, and <strong>Deterministic Budget Synthesis</strong> with persistent PostgreSQL memory.
             </p>
         </section>
 
@@ -178,7 +181,15 @@
                     <div class="agent-node-status" id="statusHotel">Awaiting trigger</div>
                 </div>
 
-                <!-- Node 3: Itinerary Agent -->
+                <!-- Node 3: Weather Agent -->
+                <div class="agent-node" id="nodeWeather">
+                    <div class="agent-node-icon">⛅</div>
+                    <div class="agent-node-name">Weather Agent</div>
+                    <div class="agent-node-role">OpenWeather MCP & 5-Day Forecast</div>
+                    <div class="agent-node-status" id="statusWeather">Awaiting trigger</div>
+                </div>
+
+                <!-- Node 4: Itinerary Agent -->
                 <div class="agent-node" id="nodeItinerary">
                     <div class="agent-node-icon">🗺️</div>
                     <div class="agent-node-name">Itinerary Agent</div>
@@ -186,7 +197,7 @@
                     <div class="agent-node-status" id="statusItinerary">Awaiting trigger</div>
                 </div>
 
-                <!-- Node 4: Final Synthesis Agent -->
+                <!-- Node 5: Final Synthesis Agent -->
                 <div class="agent-node" id="nodeFinal">
                     <div class="agent-node-icon">🧠</div>
                     <div class="agent-node-name">Synthesis Agent</div>
@@ -241,6 +252,9 @@
                         <button class="studio-tab-btn" onclick="switchTab('hotelData')">
                             <span>🏨</span> Curated Hotels
                         </button>
+                        <button class="studio-tab-btn" onclick="switchTab('weatherData')">
+                            <span>⛅</span> Weather & Forecast
+                        </button>
                         <button class="studio-tab-btn" onclick="switchTab('rawItinerary')">
                             <span>🗺️</span> Raw Itinerary
                         </button>
@@ -262,6 +276,11 @@
 
                     <div id="tabPanelHotelData" class="tab-panel">
                         <div class="raw-agent-box" id="rawHotelBox">// Hotel Agent Tavily search stream will appear here...</div>
+                    </div>
+
+                    <div id="tabPanelWeatherData" class="tab-panel">
+                        <div id="weatherDashboardContainer" class="weather-dashboard-view"></div>
+                        <div class="raw-agent-box" id="rawWeatherBox">// Weather Agent OpenWeather MCP stream will appear here...</div>
                     </div>
 
                     <div id="tabPanelRawItinerary" class="tab-panel">
@@ -336,6 +355,8 @@
                 <span>PostgreSQL Checkpointer</span>
                 <span>Tavily AI Search</span>
                 <span>AviationStack API</span>
+                <span>OpenWeather MCP</span>
+                <span>Model Context Protocol</span>
             </div>
         </footer>
 

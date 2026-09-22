@@ -120,6 +120,7 @@ function startPipelineAnimation() {
     const nodes = [
         { id: "nodeFlight", statusId: "statusFlight", label: "Querying AviationStack..." },
         { id: "nodeHotel", statusId: "statusHotel", label: "Tavily AI scanning stays..." },
+        { id: "nodeWeather", statusId: "statusWeather", label: "OpenWeather MCP checking climate..." },
         { id: "nodeItinerary", statusId: "statusItinerary", label: "Generating day schedule..." },
         { id: "nodeFinal", statusId: "statusFinal", label: "Synthesizing budget..." }
     ];
@@ -182,6 +183,7 @@ function completePipelineAnimation(isCached = false, latencyMs = 0) {
     const nodeIds = [
         { id: "nodeFlight", statusId: "statusFlight", cachedText: "⚡ From Redis Flight Cache" },
         { id: "nodeHotel", statusId: "statusHotel", cachedText: "⚡ From Redis Hotel Cache" },
+        { id: "nodeWeather", statusId: "statusWeather", cachedText: "⚡ From Redis Weather Cache" },
         { id: "nodeItinerary", statusId: "statusItinerary", cachedText: "⚡ 0 LLM Tokens Consumed" },
         { id: "nodeFinal", statusId: "statusFinal", cachedText: "⚡ Instant Cached Synthesis" }
     ];
@@ -204,7 +206,7 @@ function resetPipelineAnimation() {
         statusBadge.className = "pipeline-status-badge";
     }
 
-    ["Flight", "Hotel", "Itinerary", "Final"].forEach(name => {
+    ["Flight", "Hotel", "Weather", "Itinerary", "Final"].forEach(name => {
         const el = document.getElementById(`node${name}`);
         const st = document.getElementById(`status${name}`);
         if (el) el.className = "agent-node";
@@ -308,6 +310,7 @@ function displayResults(data, latencyMs = 0) {
 
     const rawFlight = document.getElementById("rawFlightBox");
     const rawHotel = document.getElementById("rawHotelBox");
+    const rawWeather = document.getElementById("rawWeatherBox");
     const rawItinerary = document.getElementById("rawItineraryBox");
     const rawTelemetry = document.getElementById("rawTelemetryJson");
 
@@ -351,7 +354,11 @@ function displayResults(data, latencyMs = 0) {
 
     if (rawFlight) rawFlight.textContent = data.flight_results || "// No dedicated flight stream payload available.";
     if (rawHotel) rawHotel.textContent = data.hotel_results || "// No dedicated hotel stream payload available.";
+    if (rawWeather) rawWeather.textContent = data.weather_results || "// No dedicated weather stream payload available.";
     if (rawItinerary) rawItinerary.textContent = data.itinerary || "// No raw itinerary draft payload available.";
+
+    // Render interactive weather visualizer cards
+    renderWeatherDashboard(data.weather_results);
 
     if (rawTelemetry) {
         rawTelemetry.textContent = JSON.stringify({
@@ -361,7 +368,7 @@ function displayResults(data, latencyMs = 0) {
             tokens_saved: isCached ? data.tokens_saved : 0,
             latency_ms: latencyMs,
             llm_calls: isCached ? 0 : (data.llm_calls ?? 2),
-            graph_nodes: ["flight_agent", "hotel_agent", "itinerary_agent", "final_agent"],
+            graph_nodes: ["flight_agent", "hotel_agent", "weather_agent", "itinerary_agent", "final_agent"],
             checkpoint_engine: "PostgreSQL (dict_row)",
             status: "SUCCESS_COMPILED",
             timestamp: new Date().toISOString()
@@ -424,6 +431,7 @@ function switchTab(tabKey) {
         masterPlan: "tabPanelMasterPlan",
         flightData: "tabPanelFlightData",
         hotelData: "tabPanelHotelData",
+        weatherData: "tabPanelWeatherData",
         rawItinerary: "tabPanelRawItinerary",
         telemetry: "tabPanelTelemetry"
     };
@@ -447,6 +455,165 @@ function switchTab(tabKey) {
 
     const targetPanel = document.getElementById(targetPanelId);
     if (targetPanel) targetPanel.classList.add("active");
+}
+
+/* ==========================================================================
+   Weather Intelligence Dashboard Renderer
+   ========================================================================== */
+function renderWeatherDashboard(weatherStr) {
+    const container = document.getElementById("weatherDashboardContainer");
+    if (!container) return;
+
+    if (!weatherStr || weatherStr.includes("unavailable") || weatherStr.trim() === "") {
+        container.innerHTML = `
+            <div class="weather-empty-state">
+                <span style="font-size: 36px;">⛅</span>
+                <p>${weatherStr || "Weather intelligence awaiting execution."}</p>
+            </div>
+        `;
+        return;
+    }
+
+    try {
+        let city = "Destination";
+        let temp = "--";
+        let feelsLike = "--";
+        let humidity = "--";
+        let condition = "Pleasant";
+        let windSpeed = "--";
+        let forecastList = [];
+
+        // Helper for condition icon
+        const getWeatherIcon = (cond) => {
+            const c = (cond || "").toLowerCase();
+            if (c.includes("rain") || c.includes("drizzle")) return "🌧️";
+            if (c.includes("thunder") || c.includes("storm")) return "⛈️";
+            if (c.includes("snow")) return "❄️";
+            if (c.includes("cloud")) return "⛅";
+            if (c.includes("clear") || c.includes("sun")) return "☀️";
+            if (c.includes("mist") || c.includes("fog") || c.includes("haze")) return "🌫️";
+            return "🌤️";
+        };
+
+        // Current weather parsing
+        const cityMatch = weatherStr.match(/['"]city['"]\s*:\s*['"]([^'"]+)['"]/i);
+        if (cityMatch) city = cityMatch[1];
+
+        const tempMatch = weatherStr.match(/['"]temperature_c['"]\s*:\s*([0-9.-]+)/i);
+        if (tempMatch) temp = Math.round(parseFloat(tempMatch[1]));
+
+        const feelsMatch = weatherStr.match(/['"]feels_like_c['"]\s*:\s*([0-9.-]+)/i);
+        if (feelsMatch) feelsLike = Math.round(parseFloat(feelsMatch[1]));
+
+        const humMatch = weatherStr.match(/['"]humidity['"]\s*:\s*([0-9]+)/i);
+        if (humMatch) humidity = humMatch[1];
+
+        const condMatch = weatherStr.match(/['"]condition['"]\s*:\s*['"]([^'"]+)['"]/i);
+        if (condMatch) condition = condMatch[1];
+
+        const windMatch = weatherStr.match(/['"]wind_speed['"]\s*:\s*([0-9.]+)/i);
+        if (windMatch) windSpeed = windMatch[1];
+
+        // Parse Forecast items
+        const itemRegex = /\{['"]datetime['"]\s*:\s*['"]([^'"]+)['"]\s*,\s*['"]temperature['"]\s*:\s*([0-9.-]+)\s*,\s*['"]weather['"]\s*:\s*['"]([^'"]+)['"]\}/g;
+        let match;
+        while ((match = itemRegex.exec(weatherStr)) !== null) {
+            forecastList.push({
+                datetime: match[1],
+                temperature: Math.round(parseFloat(match[2])),
+                weather: match[3]
+            });
+        }
+
+        const mainIcon = getWeatherIcon(condition);
+
+        let forecastCardsHtml = "";
+        if (forecastList.length > 0) {
+            forecastCardsHtml = forecastList.slice(0, 5).map(item => {
+                const icon = getWeatherIcon(item.weather);
+                const parts = item.datetime.split(" ");
+                const datePart = parts[0] ? parts[0].substring(5) : "Day"; // MM-DD
+                const timePart = parts[1] ? parts[1].substring(0, 5) : "";
+                return `
+                    <div class="forecast-card">
+                        <div class="forecast-date">${datePart}</div>
+                        ${timePart ? `<div class="forecast-time">${timePart}</div>` : ""}
+                        <div class="forecast-icon">${icon}</div>
+                        <div class="forecast-temp">${item.temperature}°C</div>
+                        <div class="forecast-condition">${item.weather}</div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        container.innerHTML = `
+            <div class="weather-hero-card">
+                <div class="weather-hero-main">
+                    <div class="weather-location-pill">
+                        <span>📍</span>
+                        <strong>${city}</strong>
+                        <span class="live-tag">LIVE OPENWEATHER MCP</span>
+                    </div>
+                    <div class="weather-temp-row">
+                        <span class="weather-huge-icon">${mainIcon}</span>
+                        <div class="weather-temp-digits">
+                            <span class="temp-val">${temp}</span>
+                            <span class="temp-unit">°C</span>
+                        </div>
+                        <div class="weather-cond-badge">
+                            <span class="cond-title">${condition.toUpperCase()}</span>
+                            <span class="cond-sub">Feels like ${feelsLike}°C</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="weather-metrics-deck">
+                    <div class="weather-metric-pill">
+                        <div class="metric-icon">🌡️</div>
+                        <div class="metric-info">
+                            <span class="metric-lbl">Feels Like</span>
+                            <span class="metric-val">${feelsLike}°C</span>
+                        </div>
+                    </div>
+                    <div class="weather-metric-pill">
+                        <div class="metric-icon">💧</div>
+                        <div class="metric-info">
+                            <span class="metric-lbl">Humidity</span>
+                            <span class="metric-val">${humidity}%</span>
+                        </div>
+                    </div>
+                    <div class="weather-metric-pill">
+                        <div class="metric-icon">💨</div>
+                        <div class="metric-info">
+                            <span class="metric-lbl">Wind Speed</span>
+                            <span class="metric-val">${windSpeed} m/s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            ${forecastList.length > 0 ? `
+                <div class="weather-forecast-section">
+                    <div class="forecast-section-title">
+                        <span>📅</span>
+                        <h4>5-Day Multi-Horizon Weather Forecast</h4>
+                    </div>
+                    <div class="forecast-cards-grid">
+                        ${forecastCardsHtml}
+                    </div>
+                </div>
+            ` : ""}
+        `;
+
+    } catch (err) {
+        console.error("Error rendering weather dashboard:", err);
+        container.innerHTML = `
+            <div class="weather-empty-state">
+                <span style="font-size: 32px;">⛅</span>
+                <p>Live Weather Stream Available Below</p>
+            </div>
+        `;
+    }
 }
 
 /* ==========================================================================
