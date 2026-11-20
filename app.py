@@ -135,6 +135,8 @@ async def travel_planner(request_data: TravelRequest):
                 "is_cached": result.get("is_cached", False),
                 "cache_source": result.get("cache_source"),
                 "tokens_saved": result.get("tokens_saved", 0),
+                "is_blocked": result.get("is_blocked", False),
+                "block_type": result.get("block_type"),
             }
         )
 

@@ -164,15 +164,20 @@ function startPipelineAnimation() {
     }, stepDuration);
 }
 
-function completePipelineAnimation(isCached = false, latencyMs = 0) {
+function completePipelineAnimation(isCached = false, latencyMs = 0, isBlocked = false) {
     clearInterval(pipelineInterval);
 
     const grid = document.getElementById("agentNodesGrid");
     const statusBadge = document.getElementById("pipelineStatusBadge");
     if (grid) grid.classList.remove("animated");
     if (statusBadge) {
-        if (isCached) {
-            statusBadge.textContent = `⚡ REDIS CACHE HIT (${latencyMs}ms)`;
+        if (isBlocked) {
+            statusBadge.textContent = `🛡️ GUARDRAIL SCREENED (${latencyMs}ms)`;
+            statusBadge.className = "pipeline-status-badge";
+            statusBadge.style.borderColor = "var(--red-accent)";
+            statusBadge.style.color = "#f87171";
+        } else if (isCached) {
+            statusBadge.textContent = `⚡ CACHE HIT (${latencyMs}ms)`;
             statusBadge.className = "pipeline-status-badge running";
         } else {
             statusBadge.textContent = `EXECUTION COMPLETE (${latencyMs}ms)`;
@@ -192,7 +197,13 @@ function completePipelineAnimation(isCached = false, latencyMs = 0) {
         const el = document.getElementById(n.id);
         const st = document.getElementById(n.statusId);
         if (el) el.className = "agent-node completed";
-        if (st) st.textContent = isCached ? n.cachedText : "✓ Executed & Verified";
+        if (st) {
+            if (isBlocked) {
+                st.textContent = "🛡️ Screened by Guardrail";
+            } else {
+                st.textContent = isCached ? n.cachedText : "✓ Executed & Verified";
+            }
+        }
     });
 }
 
@@ -266,14 +277,18 @@ async function sendMessage() {
         localStorage.setItem("dreamtrip_thread_id", currentThreadId);
         initSessionBadge();
 
-        completePipelineAnimation(data.is_cached, latencyMs);
+        const isBlocked = !!data.is_blocked;
+        completePipelineAnimation(data.is_cached, latencyMs, isBlocked);
         displayResults(data, latencyMs);
 
-        if (data.is_cached) {
+        if (isBlocked) {
+            showToast("🛡️ Query screened by DreamTrip Guardrails.", "🛡️");
+        } else if (data.is_cached) {
             const savedTokens = (data.tokens_saved || 4500).toLocaleString();
-            showToast(`⚡ Redis Cache HIT in ${latencyMs}ms! Saved ~${savedTokens} tokens.`, "⚡");
+            const sourceName = data.cache_source || "Semantic Cache";
+            showToast(`⚡ ${sourceName} HIT in ${latencyMs}ms! Saved ~${savedTokens} tokens.`, "⚡");
         } else {
-            showToast(`Autonomous Plan Synthesized in ${latencyMs}ms! Saved to Redis.`, "🚀");
+            showToast(`Autonomous Plan Synthesized in ${latencyMs}ms! Indexed to Cache.`, "🚀");
         }
 
         fetchLiveCacheStats();
@@ -330,12 +345,16 @@ function displayResults(data, latencyMs = 0) {
     if (latencyChip) latencyChip.textContent = `Latency: ${latencyMs}ms`;
 
     if (cacheBadge) {
-        if (isCached) {
+        if (data.is_blocked) {
+            cacheBadge.className = "meta-chip";
+            cacheBadge.innerHTML = `🛡️ <strong style="color: #f87171;">Guardrail Enforced</strong> (${data.block_type || "screened"})`;
+        } else if (isCached) {
             cacheBadge.className = "meta-chip highlight-cache";
-            cacheBadge.innerHTML = `⚡ <strong>Redis HIT</strong> (~${tokensSaved} tokens saved)`;
+            const sourceLabel = data.cache_source || "Semantic Cache HIT";
+            cacheBadge.innerHTML = `⚡ <strong>${sourceLabel}</strong> (~${tokensSaved} tokens saved)`;
         } else {
             cacheBadge.className = "meta-chip";
-            cacheBadge.innerHTML = `⚡ Cache: Fresh (Saved to Redis)`;
+            cacheBadge.innerHTML = `⚡ Cache: Fresh (Indexed for Semantic Reuse)`;
         }
     }
 
